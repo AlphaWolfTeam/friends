@@ -2,7 +2,7 @@ version: '3.4'
 
 services:
   api:
-    image: friends-api-gateway:apm
+    image: friends_friends-api
     depends_on:
       - user-service
       - group-service
@@ -14,7 +14,7 @@ services:
       - 8000:8000
 
   user-service:
-    image: friends-user-service:apm
+    image: friends_user-service
     depends_on:
       - outgoing-proxy-service
     env_file:
@@ -25,7 +25,7 @@ services:
       - 8001:8000
 
   group-service:
-    image: friends-group-service:apm
+    image: friends_group-service
     depends_on:
       - mongo
     env_file:
@@ -91,3 +91,40 @@ services:
       - "8200:8200"
     depends_on:
       - elasticsearch
+
+  auth-service:
+    container_name: friends-auth-service
+    image: friends_friends-auth-service
+    env_file:
+      - ./friends.env
+    environment:
+      SPIKE_CLIENT_ID: StxnQ0vCvXSZU594sd3IsjOGG3oejz1gCDMHtiUc
+      SPIKE_CLIENT_SECRET: MQ9aTAgdTs88hq1VVzW3_66Rsv2hyc57a9O9Pf1DCvs_cjOr2FGDVsDplFd9Ul5acem28npIcZdealx9_8qXbKHw5aFYyRt70wuG
+    ports:
+      - 8005:8000
+
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - 8443:8443
+    volumes:
+      - ./authorization-service/nginx:/etc/nginx/conf.d
+    depends_on:
+      - auth-service
+
+  config-service:
+    image: friends_friends-config-server
+    env_file:
+      - ./friends.env
+    environment:
+      PORT: 8000
+      API_GATEWAY_URI: http://localhost:8004/
+      AUTH_SERVICE_URI: http://localhost:8005/
+    ports:
+      - 4000:8000
+
+  client:
+    image: friends_client
+    ports:
+      - '3000:3000'
