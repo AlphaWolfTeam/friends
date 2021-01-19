@@ -1,0 +1,18 @@
+[submodule "group-service"]
+	path = group-service
+	url = https://github.com/AlphaWolfTeam/group-service
+[submodule "api-gateway"]
+	path = api-gateway
+	url = https://github.com/AlphaWolfTeam/api-gateway
+[submodule "config-service"]
+	path = config-service
+	url = https://github.com/AlphaWolfTeam/friends-config-server
+[submodule "authorization-service"]
+	path = authorization-service
+	url = https://github.com/AlphaWolfTeam/friends-authorization-service
+[submodule "client"]
+	path = client
+	url = https://github.com/AlphaWolfTeam/friends-client
+[submodule "user-service"]
+	path = user-service
+	url = https://github.com/AlphaWolfTeam/friends-user-service

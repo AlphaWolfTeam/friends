@@ -1,0 +1,100 @@
+version: '3.4'
+
+services:
+  api:
+    image: friends-api-gateway:apm
+    depends_on:
+      - user-service
+      - group-service
+    env_file:
+      - ./friends.env
+    environment:
+      PORT: 8000
+    ports:
+      - 8000:8000
+
+  user-service:
+    image: friends-user-service:apm
+    depends_on:
+      - outgoing-proxy-service
+    env_file:
+    - ./friends.env
+    environment:
+      PORT: 8000
+    ports:
+      - 8001:8000
+
+  group-service:
+    image: friends-group-service:apm
+    depends_on:
+      - mongo
+    env_file:
+      - ./friends.env
+    environment:
+      PORT: 8000
+      MONGO_FEATURE_COLLECTION_NAME: groups
+    ports:
+      - 8002:8000
+
+  outgoing-proxy-service:
+    image: spike-proxy-service-master
+    environment:
+      MODE: outgoing
+      PORT: 8000
+      SPIKE_REDIS_HOST: redis://redis
+      SPIKE_CLIENT_ID: hvOItpV~jv0ZiIqEAxLrYx8sxvDHmPfNiw9wtOSz
+      SPIKE_CLIENT_SECRET: e2ar_pCJc27RdT4dFw~6ONYJ~5gVgsWfh9cjuUJ0YyVL0simY3VwehAYwe0qPB_uUIjRXFKzHJUqW7A_KM1DBpPYtQQ183JcdLFr
+      SPIKE_URL: https://51.144.178.121:1337/oauth2/token
+      TOKEN_GRANT_TYPE: client_credentials
+      SPIKE_USER_SERVICE_REDIS_KEY_NAME: kartoffel
+      SPIKE_PUBLIC_KEY_FULL_PATH: ./certificate/publicKey.pem
+      USE_REDIS: 'false'
+      OUTGOING_SERVICES: '[{"route":"/kartoffel/*","pathRewrite":{"^/kartoffel":""},"target":"${KARTOFFEL_REAL_URL}","audience":"kartoffel"}]'
+    ports:
+      - 8003:8000
+
+  incoming-spike-proxy:
+    image: spike-proxy-service-master
+    environment: 
+      MODE: incoming
+      PORT: 8000
+      SPIKE_PUBLIC_KEY_FULL_PATH: ./certificate/publicKey.pem
+      INCOMING_SERVICES: '[{"target":"http://friends-api:8000","audience":"${FRIENDS_API_AUDIENCE_ID}","useBearerToken":true,"routes":[{"route":"/api/*","method":"get","allowedScopes":["read"],"useAuthentication":true},{"route":"/api/*","method":"all","allowedScopes":["write"],"useAuthentication":true},{"route":"/*","method":"get","useAuthentication":false}]}]'
+    ports:
+      - 8004:8000
+
+  mongo:
+    image: "mongo:4.0.9"
+    ports:
+      - "27017:27017"
+    volumes:
+      - "./data/db:/data/db"
+
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+
+  elasticsearch:
+    image: "docker.elastic.co/elasticsearch/elasticsearch:7.5.0"
+    environment:
+      - discovery.type=single-node
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"
+
+  kibana:
+    image: "docker.elastic.co/kibana/kibana:7.5.0"
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  apm:
+    image: "docker.elastic.co/apm/apm-server:7.5.0"
+    container_name: apm
+    ports:
+      - "8200:8200"
+    depends_on:
+      - elasticsearch
