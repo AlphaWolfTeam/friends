@@ -1,8 +1,8 @@
 version: '3.4'
 
 services:
-  api:
-    image: friends_friends-api
+  friends-api:
+    image: alphawolfsforce/api-gateway:develop
     depends_on:
       - user-service
       - group-service
@@ -14,7 +14,7 @@ services:
       - 8000:8000
 
   user-service:
-    image: friends_user-service
+    image: alphawolfsforce/friends-user-service:develop
     depends_on:
       - outgoing-proxy-service
     env_file:
@@ -25,7 +25,7 @@ services:
       - 8001:8000
 
   group-service:
-    image: friends_group-service
+    image: alphawolfsforce/group-service:develop
     depends_on:
       - mongo
     env_file:
@@ -37,7 +37,7 @@ services:
       - 8002:8000
 
   outgoing-proxy-service:
-    image: spike-proxy-service-master
+    image: alphawolfsforce/friends-spike-proxy-service:develop
     env_file:
       - ./friends.env
     environment:
@@ -47,7 +47,7 @@ services:
       - 8003:8000
 
   incoming-spike-proxy:
-    image: spike-proxy-service-master
+    image: alphawolfsforce/friends-spike-proxy-service:develop
     env_file:
       - ./friends.env
     environment: 
@@ -93,8 +93,8 @@ services:
       - elasticsearch
 
   auth-service:
-    container_name: friends-auth-service
-    image: friends_friends-auth-service
+    image: alphawolfsforce/friends-authorization-service:develop
+    container_name: auth-service
     env_file:
       - ./friends.env
     environment:
@@ -103,28 +103,33 @@ services:
     ports:
       - 8005:8000
 
-  nginx-proxy:
-    image: nginx:alpine
-    container_name: nginx-proxy
-    ports:
-      - 8443:8443
-    volumes:
-      - ./authorization-service/nginx:/etc/nginx/conf.d
-    depends_on:
-      - auth-service
-
-  config-service:
-    image: friends_friends-config-server
+  config-server:
+    container_name: config-server
+    image: alphawolfsforce/friends-config-server:develop
     env_file:
       - ./friends.env
     environment:
       PORT: 8000
       API_GATEWAY_URI: http://localhost:8004/
       AUTH_SERVICE_URI: http://localhost:8005/
-    ports:
+    ports: 
       - 4000:8000
 
   client:
-    image: friends_client
+    container_name: client
+    image: alphawolfsforce/friends-client:develop
     ports:
-      - '3000:3000'
+      - 3000:3000
+ 
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - 8443:8443
+      - 80:80
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - auth-service
+      - config-server
+      - client
